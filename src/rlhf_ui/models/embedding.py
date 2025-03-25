@@ -12,8 +12,8 @@ import torch
 import torch.nn as nn
 import numpy as np
 from PIL import Image
-import torchvision.transforms as transforms
-from torchvision.models import resnet50, ResNet50_Weights
+import torchvision.transforms as transforms # type: ignore
+from torchvision.models import resnet50, ResNet50_Weights # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ class ImageEmbeddingModel:
         ])
         
         # Initialize embedding cache
-        self.embedding_cache = {}
+        self.embedding_cache: dict[str, np.ndarray] = {}
     
     def _initialize_model(self, model_name: str, pretrained: bool) -> None:
         """
@@ -246,7 +246,7 @@ class TextEmbeddingModel:
             self.device = device
         
         # Initialize cache
-        self.cache = {}
+        self.cache: dict[str, np.ndarray] = {}
         self.cache_size = cache_size
         
         # Load model
@@ -255,7 +255,7 @@ class TextEmbeddingModel:
     def _load_model(self) -> None:
         """Load the text embedding model and tokenizer."""
         try:
-            from transformers import AutoModel, AutoTokenizer
+            from transformers import AutoModel, AutoTokenizer # type: ignore
             
             # Load tokenizer and model
             self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
@@ -339,9 +339,10 @@ class TextEmbeddingModel:
         embeddings = []
         for text in texts:
             emb = self.embed_text(text)
-            embeddings.append(emb)
+            if emb is not None:
+                embeddings.append(emb)
         
-        return np.stack(embeddings)
+        return np.stack(embeddings) if embeddings else None
     
     def get_similarity(self, text1: str, text2: str) -> Optional[float]:
         """
@@ -360,6 +361,9 @@ class TextEmbeddingModel:
         emb1 = self.embed_text(text1)
         emb2 = self.embed_text(text2)
         
+        if emb1 is None or emb2 is None:
+            return None
+            
         # Compute cosine similarity
         similarity = np.dot(emb1, emb2) / (np.linalg.norm(emb1) * np.linalg.norm(emb2))
         return float(similarity)
@@ -434,6 +438,10 @@ class MultiModalEmbedding:
         # Get text embedding
         text_emb = self.text_model.embed_text(text)
         
+        # Return image embedding if text embedding is None
+        if text_emb is None:
+            return img_emb
+
         # Fuse embeddings
         if fusion == "concat":
             # Concatenate embeddings
@@ -454,3 +462,4 @@ class MultiModalEmbedding:
             return img_emb * text_emb
         else:
             logger.warning(f"Unknown fusion method: {fusion}")
+            return img_emb
