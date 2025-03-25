@@ -1,0 +1,88 @@
+2025-03-25 16:52:43,741 - __main__ - INFO - Starting RLHF UI application
+2025-03-25 16:52:44,129 - rlhf_ui.ui.collectors.preference - INFO - Loaded preference database with 23 records
+2025-03-25 16:52:44,129 - rlhf_ui.data.sampler - INFO - Loaded 24 images from images
+2025-03-25 16:52:44,129 - rlhf_ui.data.sampler - INFO - Initializing image embedding model
+2025-03-25 16:52:48,977 - rlhf_ui.models.trainer - INFO - Loaded 23 preference records from preference_data/preferences.csv.
+2025-03-25 16:52:48,977 - rlhf_ui.models.trainer - INFO - Excluded 0 ties/skips.
+2025-03-25 16:52:48,977 - rlhf_ui.models.trainer - INFO - Using device: cpu
+2025-03-25 16:52:48,977 - rlhf_ui.ui.trainers.reward - INFO - Initialized trainer with 23 preference records
+2025-03-25 16:52:48,979 - rlhf_ui.ui.visualizers.metrics - ERROR - Failed to initialize trainer
+Traceback (most recent call last):
+  File "/Users/ibrahim/Documents/Projets/RLHF-UI/src/rlhf_ui/ui/visualizers/metrics.py", line 83, in _init_trainer
+    self.trainer = RewardModelTrainer(
+                   ^^^^^^^^^^^^^^^^^^^
+  File "/Users/ibrahim/Documents/Projets/RLHF-UI/src/rlhf_ui/models/trainer.py", line 137, in __init__
+    self._load_preference_data()
+  File "/Users/ibrahim/Documents/Projets/RLHF-UI/src/rlhf_ui/models/trainer.py", line 159, in _load_preference_data
+    raise FileNotFoundError(f"Preference file not found: {self.preference_file}")
+FileNotFoundError: Preference file not found: dummy.csv
+2025-03-25 16:55:45,155 - __main__ - INFO - Starting RLHF UI application
+2025-03-25 16:55:45,256 - rlhf_ui.ui.collectors.preference - INFO - Loaded preference database with 23 records
+2025-03-25 16:55:45,257 - rlhf_ui.data.sampler - INFO - Loaded 24 images from images
+2025-03-25 16:55:45,257 - rlhf_ui.data.sampler - INFO - Initializing image embedding model
+2025-03-25 16:55:49,812 - rlhf_ui.models.trainer - INFO - Loaded 23 preference records from preference_data/preferences.csv.
+2025-03-25 16:55:49,812 - rlhf_ui.models.trainer - INFO - Excluded 0 ties/skips.
+2025-03-25 16:55:49,812 - rlhf_ui.models.trainer - INFO - Using device: cpu
+2025-03-25 16:55:49,812 - rlhf_ui.ui.trainers.reward - INFO - Initialized trainer with 23 preference records
+2025-03-25 16:55:49,821 - rlhf_ui.ui.visualizers.metrics - ERROR - Failed to initialize trainer
+Traceback (most recent call last):
+  File "/Users/ibrahim/Documents/Projets/RLHF-UI/src/rlhf_ui/ui/visualizers/metrics.py", line 95, in _init_trainer
+    self.trainer = RewardModelTrainer(
+                   ^^^^^^^^^^^^^^^^^^^
+  File "/Users/ibrahim/Documents/Projets/RLHF-UI/src/rlhf_ui/models/trainer.py", line 137, in __init__
+    self._load_preference_data()
+  File "/Users/ibrahim/Documents/Projets/RLHF-UI/src/rlhf_ui/models/trainer.py", line 159, in _load_preference_data
+    raise FileNotFoundError(f"Preference file not found: {self.preference_file}")
+FileNotFoundError: Preference file not found: dummy.csv
+2025-03-25 16:58:50,513 - __main__ - INFO - Starting RLHF UI application
+2025-03-25 16:58:50,599 - rlhf_ui.ui.collectors.preference - INFO - Loaded preference database with 23 records
+2025-03-25 16:58:50,600 - rlhf_ui.data.sampler - INFO - Loaded 24 images from images
+2025-03-25 16:58:50,600 - rlhf_ui.data.sampler - INFO - Initializing image embedding model
+2025-03-25 16:58:55,205 - rlhf_ui.models.trainer - INFO - Loaded 23 preference records from preference_data/preferences.csv.
+2025-03-25 16:58:55,205 - rlhf_ui.models.trainer - INFO - Excluded 0 ties/skips.
+2025-03-25 16:58:55,205 - rlhf_ui.models.trainer - INFO - Using device: cpu
+2025-03-25 16:58:55,205 - rlhf_ui.ui.trainers.reward - INFO - Initialized trainer with 23 preference records
+2025-03-25 16:58:55,226 - rlhf_ui.ui.visualizers.metrics - ERROR - Failed to initialize trainer
+Traceback (most recent call last):
+  File "/Users/ibrahim/Documents/Projets/RLHF-UI/src/rlhf_ui/ui/visualizers/metrics.py", line 83, in _init_trainer
+    self.trainer = RewardModelTrainer(
+                   ^^^^^^^^^^^^^^^^^^^
+  File "/Users/ibrahim/Documents/Projets/RLHF-UI/src/rlhf_ui/models/trainer.py", line 137, in __init__
+    self._load_preference_data()
+  File "/Users/ibrahim/Documents/Projets/RLHF-UI/src/rlhf_ui/models/trainer.py", line 159, in _load_preference_data
+    raise FileNotFoundError(f"Preference file not found: {self.preference_file}")
+FileNotFoundError: Preference file not found: dummy.csv
+2025-03-25 16:58:56,607 - rlhf_ui.ui.app - INFO - Application UI initialized
+2025-03-25 16:59:40,701 - rlhf_ui.ui.collectors.preference - INFO - Rating session completed with 40 comparisons
+2025-03-25 17:00:46,381 - rlhf_ui.ui.trainers.reward - INFO - Started training with 5 epochs
+2025-03-25 17:00:46,382 - rlhf_ui.models.trainer - INFO - Starting training: 5 epochs, learning rate = 0.0001
+2025-03-25 17:00:46,382 - rlhf_ui.models.trainer - INFO - Initializing model architecture...
+2025-03-25 17:00:46,620 - rlhf_ui.models.trainer - INFO - Model initialized successfully.
+2025-03-25 17:00:46,620 - rlhf_ui.models.trainer - INFO - Creating dataset and dataloader...
+2025-03-25 17:00:46,621 - rlhf_ui.data.dataset - INFO - Created dataset with 23 preference pairs
+2025-03-25 17:00:46,621 - rlhf_ui.models.trainer - INFO - Dataset created with 23 samples.
+2025-03-25 17:00:46,621 - rlhf_ui.models.trainer - INFO - Epoch 1/5 started.
+2025-03-25 17:00:56,287 - rlhf_ui.models.trainer - INFO - Epoch 1 complete: Loss = 0.6891, Accuracy = 0.6522
+2025-03-25 17:00:56,289 - rlhf_ui.models.trainer - INFO - Saving model checkpoint for epoch 0: Loss = 0.6891, Accuracy = 0.6522
+2025-03-25 17:00:56,348 - rlhf_ui.models.trainer - INFO - Model checkpoint saved to reward_model/reward_model_epoch_0.safetensors
+2025-03-25 17:00:56,348 - rlhf_ui.models.trainer - INFO - Epoch 2/5 started.
+2025-03-25 17:01:05,926 - rlhf_ui.models.trainer - INFO - Epoch 2 complete: Loss = 0.6726, Accuracy = 0.8696
+2025-03-25 17:01:05,927 - rlhf_ui.models.trainer - INFO - Saving model checkpoint for epoch 1: Loss = 0.6726, Accuracy = 0.8696
+2025-03-25 17:01:05,953 - rlhf_ui.models.trainer - INFO - Model checkpoint saved to reward_model/reward_model_epoch_1.safetensors
+2025-03-25 17:01:05,953 - rlhf_ui.models.trainer - INFO - Epoch 3/5 started.
+2025-03-25 17:01:15,535 - rlhf_ui.models.trainer - INFO - Epoch 3 complete: Loss = 0.6427, Accuracy = 1.0000
+2025-03-25 17:01:15,536 - rlhf_ui.models.trainer - INFO - Saving model checkpoint for epoch 2: Loss = 0.6427, Accuracy = 1.0000
+2025-03-25 17:01:15,566 - rlhf_ui.models.trainer - INFO - Model checkpoint saved to reward_model/reward_model_epoch_2.safetensors
+2025-03-25 17:01:15,566 - rlhf_ui.models.trainer - INFO - Epoch 4/5 started.
+2025-03-25 17:01:25,187 - rlhf_ui.models.trainer - INFO - Epoch 4 complete: Loss = 0.6083, Accuracy = 1.0000
+2025-03-25 17:01:25,189 - rlhf_ui.models.trainer - INFO - Saving model checkpoint for epoch 3: Loss = 0.6083, Accuracy = 1.0000
+2025-03-25 17:01:25,216 - rlhf_ui.models.trainer - INFO - Model checkpoint saved to reward_model/reward_model_epoch_3.safetensors
+2025-03-25 17:01:25,216 - rlhf_ui.models.trainer - INFO - Epoch 5/5 started.
+2025-03-25 17:01:34,817 - rlhf_ui.models.trainer - INFO - Epoch 5 complete: Loss = 0.5566, Accuracy = 0.9565
+2025-03-25 17:01:34,819 - rlhf_ui.models.trainer - INFO - Saving model checkpoint for epoch 4: Loss = 0.5566, Accuracy = 0.9565
+2025-03-25 17:01:34,841 - rlhf_ui.models.trainer - INFO - Model checkpoint saved to reward_model/reward_model_epoch_4.safetensors
+2025-03-25 17:01:34,841 - rlhf_ui.models.trainer - INFO - Training completed!
+2025-03-25 17:03:25,687 - rlhf_ui.models.trainer - INFO - Exporting reward model for RLHF...
+2025-03-25 17:03:25,688 - rlhf_ui.models.trainer - INFO - Best checkpoint selected: reward_model/reward_model_epoch_4.safetensors
+2025-03-25 17:03:25,906 - rlhf_ui.models.trainer - INFO - Exported reward model for RLHF to /Users/ibrahim/Documents/Projets/RLHF-UI/reward_model/reward_model_for_rlhf.safetensors
+2025-03-25 17:03:25,906 - rlhf_ui.models.trainer - INFO - Exported config to /Users/ibrahim/Documents/Projets/RLHF-UI/reward_model/reward_model_for_rlhf.json

@@ -1,6 +1,6 @@
 .env
 images/
 reward_model/
-prefererence_data/
+preference_data/
 .DS_Store
 __pycache__/

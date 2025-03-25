@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "An UI to train a reward model based on human preference rating for use in RLHF"
 authors = ["Ibrahim Didi <ibrahim.didi@polytechnique.org>"]
 readme = "README.md"
-packages = [{include = "rlhf-ui", from = "src"}]
+packages = [{include = "rlhf_ui", from = "src"}]
 
 [tool.poetry.dependencies]
 python = ">=3.12.0,<4.0.0"
@@ -13,6 +13,9 @@ torchvision = "^0.21.0"
 pandas = "^2.2.3"
 transformers = "^4.50.0"
 safetensors = "^0.5.3"
+pyqt6 = "^6.8.1"
+matplotlib = "^3.10.1"
+click = "^8.1.8"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
