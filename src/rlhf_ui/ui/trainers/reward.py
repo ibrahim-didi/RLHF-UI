@@ -297,6 +297,7 @@ class RewardModelTrainerWidget(QWidget):
             return
         
         # Confirm if training data seems insufficient
+        # TODO: maybe a better approach is to check in context of number of pair combinations
         record_count = len(self.trainer.preferences_df)
         if record_count < 50:
             reply = QMessageBox.question(

@@ -272,7 +272,7 @@ class PreferenceDataStorage:
         Returns:
             Dict[str, set]: For each image, a set of images it has been compared with
         """
-        comparison_matrix = {}
+        comparison_matrix: Dict[str, set] = {}
         
         for _, row in self.preferences_df.iterrows():
             img1, img2 = row['image1'], row['image2']
@@ -386,7 +386,7 @@ class PreferenceDataStorage:
             self.preferences_df = pd.concat([self.preferences_df, import_df], ignore_index=True)
         
         # Save imported data
-        record_count = len(self.preferences_df) - len(self.preferences_df)
+        record_count = len(self.preferences_df)
         self.save()
         
         if merge_strategy == "replace":
@@ -404,7 +404,7 @@ class PreferenceDataStorage:
         Returns:
             Dict[str, Any]: Statistics about the preference data
         """
-        stats = {}
+        stats: Dict[str, Any] = {}
         
         # Basic counts
         stats['total_records'] = len(self.preferences_df)
@@ -598,7 +598,7 @@ class ModelCheckpointManager:
             checkpoints.append(checkpoint_info)
         
         # Sort by epoch
-        checkpoints.sort(key=lambda x: x.get('epoch', 0))
+        checkpoints.sort(key=lambda x: x.get('epoch', 0)) # type: ignore
         
         return checkpoints
     

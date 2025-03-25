@@ -187,6 +187,8 @@ class PreferenceCollectorWidget(QWidget):
         self.comparison_start_time = time.time()
         
         # Update stats
+        # TODO : 1. add session comparisons (comparisons made this time)
+        #        2. make it so progress bar is until the total pair possibles (n*n-1)/2
         self.stats_label.setText(f"Total comparisons: {self.total_comparisons}")
         self.progress_bar.setValue(min(self.total_comparisons, 100))
     
