@@ -7,7 +7,7 @@ import logging
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Callable, List, Union
+from typing import Optional, Callable, List, Union, Dict, Any
 
 import pandas as pd
 import torch
@@ -20,6 +20,12 @@ from safetensors.torch import save_file, load_file
 from PIL import Image  # Add missing PIL Image import
 
 from rlhf_ui.data.dataset import PreferenceDataset, PreferenceDataCollator
+from rlhf_ui.visualization import (
+    init_wandb,
+    log_metrics,
+    log_model,
+    finish_run
+)
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +158,16 @@ class RewardModelTrainer:
             transforms.Normalize(mean=[0.485, 0.456, 0.406], 
                                std=[0.229, 0.224, 0.225])
         ])
+        
+        # Initialize tracking variables
+        self.wandb_initialized = False
+        self.current_epoch = 0
+        self.best_accuracy = 0.0
+        self.best_model_path = None
+        
+        # Best model tracking
+        self.epoch_losses = []
+        self.epoch_accs = []
     
     def _load_preference_data(self) -> None:
         """Load preference data from CSV file."""
@@ -281,52 +297,91 @@ class RewardModelTrainer:
         lr: float = 1e-4, 
         batch_size: int = 8,
         text_embedding_size: int = 0, 
-        progress_callback: Optional[Callable[[int, int, float, float], None]] = None
+        progress_callback: Optional[Callable[[int, int, float, float], None]] = None,
+        use_wandb: bool = True,
+        wandb_project: str = "rlhf-reward-model",
+        wandb_run_name: Optional[str] = None
     ) -> str:
         """
-        Train the reward model using the Bradley-Terry model for preferences.
+        Train the reward model on preference data.
         
         Args:
             epochs: Number of training epochs
             lr: Learning rate
-            batch_size: Batch size
+            batch_size: Batch size for training
             text_embedding_size: Size of text embeddings if using prompts
-            progress_callback: Callback for reporting progress
-                Args: epoch, progress_percent, loss, accuracy
-                
-        Returns:
-            str: Path to the saved model
-        """
-        # Check if we have enough data
-        if len(self.preferences_df) < 2:
-            error_msg = "Not enough preference data for training. Need at least 2 records."
-            logger.error(error_msg)
-            raise ValueError(error_msg)
+            progress_callback: Optional callback for progress updates
+            use_wandb: Whether to use Weights & Biases for tracking
+            wandb_project: W&B project name
+            wandb_run_name: Optional W&B run name (auto-generated if None)
             
-        logger.info(f"Starting training: {epochs} epochs, learning rate = {lr}")
+        Returns:
+            str: Path to the best model checkpoint
+        """
+        # Initialize model architecture
         self._initialize_model(text_embedding_size)
+        
+        # Setup dataset and dataloader
         self._create_dataset(batch_size)
         
-        # Define optimizer
-        parameters = list(self.model.parameters())
-        optimizer = optim.Adam(parameters, lr=lr)
+        # Move model to device
+        self.model.to(self.device)
         
-        # Define scheduler
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, mode='min', factor=0.5, patience=2
-        )
+        # Setup optimizer
+        optimizer = optim.Adam(self.model.parameters(), lr=lr)
         
-        best_loss = float('inf')
+        # Setup loss function
+        # Bradley-Terry loss for preference learning
+        loss_fn = nn.BCEWithLogitsLoss()
+        
+        # Best model tracking
+        best_accuracy = 0.0
         best_model_path = None
         
-        for epoch in range(epochs):
-            logger.info(f"Epoch {epoch+1}/{epochs} started.")
-            self.model.train()
+        # Track metrics for UI display
+        self.epoch_losses = []
+        self.epoch_accs = []
+        
+        # Setup W&B tracking if enabled
+        if use_wandb:
+            # Initialize W&B run for this training session
+            config = {
+                "epochs": epochs,
+                "learning_rate": lr,
+                "batch_size": batch_size,
+                "use_text": text_embedding_size > 0,
+                "text_embedding_size": text_embedding_size,
+                "device": str(self.device),
+                "model_architecture": "ResNet50",
+                "dataset_size": len(self.dataset),
+                "optimizer": "Adam"
+            }
             
-            total_loss = 0.0
+            # Generate a run name if not provided
+            if wandb_run_name is None:
+                wandb_run_name = f"reward-model-training-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+            
+            init_wandb(
+                project_name=wandb_project,
+                experiment_name=wandb_run_name,
+                config=config,
+                tags=["reward-model", "training"]
+            )
+            self.wandb_initialized = True
+        
+        # Training loop
+        logger.info(f"Starting training for {epochs} epochs")
+        
+        for epoch in range(epochs):
+            self.current_epoch = epoch
+            
+            # Training phase
+            self.model.train()
+            train_loss = 0.0
             correct = 0
             total = 0
             
+            # Loop through batches
             for i, batch in enumerate(self.dataloader):
                 # Handle data based on whether we have text
                 if isinstance(batch, dict) and 'text' in batch:
@@ -361,44 +416,128 @@ class RewardModelTrainer:
                     r1 = self.model(img1).squeeze()
                     r2 = self.model(img2).squeeze()
                 
-                # Compute preference logits and loss
-                logits = r1 - r2
-                loss = nn.functional.binary_cross_entropy_with_logits(logits, labels)
+                # Compute preference probabilities (Bradley-Terry model)
+                # P(A > B) = sigmoid(r_A - r_B)
+                reward_diff = r1 - r2
                 
-                # Backward pass
+                # Convert preference labels (1, 2) to 0/1 for BCE loss
+                # 1 means first image preferred, 2 means second image preferred
+                target = (labels == 2).float()
+                
+                # Make sure reward_diff and target have the same shape
+                if reward_diff.dim() != target.dim():
+                    if reward_diff.dim() == 1:
+                        reward_diff = reward_diff.unsqueeze(1)  # Add channel dimension
+                    elif target.dim() == 1:
+                        target = target.unsqueeze(1)  # Add channel dimension
+                
+                # Calculate loss
+                loss = loss_fn(reward_diff, target)
+                
+                # Backpropagation
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
                 
-                # Track metrics
-                total_loss += loss.item()
-                predictions = (logits > 0).float()
-                correct += (predictions == labels).sum().item()
-                total += labels.size(0)
+                # Update metrics
+                train_loss += loss.item()
+                
+                # Calculate accuracy (based on preference prediction)
+                pred_probs = torch.sigmoid(reward_diff)
+                predicted = (pred_probs >= 0.5).float()
+                
+                # Ensure target and predicted have the same shape for comparison
+                if predicted.shape != target.shape:
+                    if predicted.dim() > target.dim():
+                        target = target.unsqueeze(-1)
+                    elif target.dim() > predicted.dim():
+                        predicted = predicted.unsqueeze(-1)
+                
+                correct += (predicted == target).sum().item()
+                total += target.size(0)
                 
                 # Report progress
-                progress = (i + 1) / len(self.dataloader) * 100
-                if progress_callback:
-                    current_loss = total_loss / (i + 1)
-                    current_acc = correct / total
-                    progress_callback(epoch, int(progress), current_loss, current_acc)
-            
-            # Compute epoch stats
-            avg_loss = total_loss / len(self.dataloader) if len(self.dataloader) > 0 else float('inf')
-            accuracy = correct / total if total > 0 else 0.0
-            
-            logger.info(f"Epoch {epoch+1} complete: Loss = {avg_loss:.4f}, Accuracy = {accuracy:.4f}")
-            
-            # Update scheduler
-            scheduler.step(avg_loss)
-            
-            # Save if best model
-            if avg_loss < best_loss:
-                best_loss = avg_loss
-                best_model_path = self._save_model(epoch, avg_loss, accuracy)
+                progress_pct = int(100 * (i + 1) / len(self.dataloader))
                 
-        logger.info("Training completed!")
-        return best_model_path if best_model_path else ""
+                # Average loss for reporting
+                avg_loss = train_loss / (i + 1)
+                
+                # Accuracy so far
+                accuracy = 100 * correct / total if total > 0 else 0
+                
+                # Call progress callback if provided
+                if progress_callback:
+                    progress_callback(epoch, progress_pct, avg_loss, accuracy)
+                    
+                # Log metrics to W&B
+                if use_wandb and i % 10 == 0:  # Log every 10 batches
+                    current_step = epoch * len(self.dataloader) + i
+                    metrics = {
+                        "train/batch_loss": loss.item(),
+                        "train/running_loss": avg_loss,
+                        "train/running_accuracy": accuracy,
+                        "_step": current_step  # Explicitly log step
+                    }
+                    log_metrics(metrics, step=current_step)
+            
+            # Compute final metrics for the epoch
+            epoch_loss = train_loss / len(self.dataloader)
+            epoch_accuracy = 100 * correct / total if total > 0 else 0
+            
+            # Store metrics for UI display
+            self.epoch_losses.append(epoch_loss)
+            self.epoch_accs.append(epoch_accuracy)
+            
+            # Log epoch metrics
+            logger.info(f"Epoch {epoch+1}/{epochs} - Loss: {epoch_loss:.4f}, Accuracy: {epoch_accuracy:.2f}%")
+            
+            if use_wandb:
+                current_step = (epoch + 1) * len(self.dataloader)
+                metrics = {
+                    "train/loss": epoch_loss,
+                    "train/accuracy": epoch_accuracy,
+                    "train/best_accuracy": max(self.epoch_accs),
+                    "train/epoch": epoch,
+                    "_step": current_step  # Explicitly log step
+                }
+                log_metrics(metrics, step=current_step)
+            
+            # Save checkpoint if it's the best model so far
+            if epoch_accuracy > best_accuracy:
+                best_accuracy = epoch_accuracy
+                best_loss = epoch_loss
+                best_epoch = epoch
+                best_model_path = self._save_model(epoch, epoch_loss, epoch_accuracy)
+                
+                # Store best metrics for access from UI
+                self.best_accuracy = best_accuracy
+                self.best_loss = best_loss
+                self.best_epoch = best_epoch
+                
+                # Log best model
+                if use_wandb:
+                    log_metrics({"train/best_accuracy": best_accuracy}, step=current_step)
+                    
+                    # Log model artifact
+                    metadata = {
+                        "epoch": epoch,
+                        "accuracy": epoch_accuracy,
+                        "loss": epoch_loss
+                    }
+                    log_model(self.model, f"reward-model-epoch-{epoch}", metadata)
+        
+        # Training completed
+        self.best_model_path = best_model_path
+        
+        # Finalize W&B run
+        if use_wandb:
+            finish_run()
+            self.wandb_initialized = False
+        
+        logger.info(f"Training completed. Best accuracy: {best_accuracy:.2f}%")
+        logger.info(f"Best model saved to: {best_model_path}")
+        
+        return best_model_path
     
     def _save_model(self, epoch: int, loss: float, accuracy: float) -> str:
         """
@@ -406,55 +545,34 @@ class RewardModelTrainer:
         
         Args:
             epoch: Current epoch number
-            loss: Validation loss
-            accuracy: Validation accuracy
+            loss: Training loss value
+            accuracy: Training accuracy
             
         Returns:
             str: Path to the saved model
         """
-        logger.info(f"Saving model checkpoint for epoch {epoch}: Loss = {loss:.4f}, Accuracy = {accuracy:.4f}")
-        
         try:
-            # Create tensor dictionary
-            tensor_dict = {}
-            
-            # Add model parameters
-            for name, param in self.model.named_parameters():
-                tensor_dict[name] = param.data
-                
-            # Add buffers (e.g., batch norm stats)
-            for name, buffer in self.model.named_buffers():
-                tensor_dict[name] = buffer
-            
-            # Create directory if it doesn't exist
+            # Create model directory
             self.model_output_dir.mkdir(exist_ok=True, parents=True)
-                
-            # Save model file
-            model_path = self.model_output_dir / f"reward_model_epoch_{epoch}.safetensors"
-            save_file(tensor_dict, str(model_path))
             
-            # Save metadata
+            # Define checkpoint path
+            checkpoint_path = self.model_output_dir / f"reward_model_epoch_{epoch:03d}.safetensors"
+            
+            # Prepare metadata
             metadata = {
-                'epoch': epoch,
-                'loss': float(loss),
-                'accuracy': float(accuracy),
-                'timestamp': datetime.now().isoformat(),
-                'model_type': 'reward_model',
-                'framework': 'pytorch',
-                'format_version': '1.0',
-                'use_text': self.use_text
+                "epoch": str(epoch),
+                "loss": str(loss),
+                "accuracy": str(accuracy),
+                "timestamp": datetime.now().isoformat(),
+                "use_text": str(self.use_text)
             }
             
-            metadata_path = self.model_output_dir / f"reward_model_epoch_{epoch}_metadata.json"
-            with open(metadata_path, 'w') as f:
-                json.dump(metadata, f, indent=2)
-                
-            # Also update config
-            with open(self.model_output_dir / 'config.json', 'w') as f:
-                json.dump(metadata, f, indent=2)
-                
-            logger.info(f"Model checkpoint saved to {model_path}")
-            return str(model_path)
+            # Save model weights using safetensors
+            model_state_dict = self.model.state_dict()
+            save_file(model_state_dict, checkpoint_path, metadata=metadata)
+            
+            logger.info(f"Model checkpoint saved to {checkpoint_path}")
+            return str(checkpoint_path)
         except Exception as e:
             logger.error(f"Error saving model checkpoint: {e}")
             return ""

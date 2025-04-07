@@ -13,10 +13,16 @@ torchvision = "^0.21.0"
 pandas = "^2.2.3"
 transformers = "^4.50.0"
 safetensors = "^0.5.3"
-pyqt6 = "^6.8.1"
-matplotlib = "^3.10.1"
+plotly = "^5.22.0"
 click = "^8.1.8"
+gradio = "^5.23.1"
+wandb = "^0.16.5"
+numpy = "1.26.4"
+diffusers = "^0.32.2"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+rlhf-ui = "rlhf_ui.app:main"
