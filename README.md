@@ -2,6 +2,8 @@
 
 A user interface to collect preference data, train reward models, and perform Reinforcement Learning from Human Feedback (RLHF).
 
+![Capture d’écran 2025-04-07 à 15 13 20](https://github.com/user-attachments/assets/ad8b3892-f0fc-49e9-b502-b8b87ccf09d3)
+
 ## Description
 
 This project provides a comprehensive graphical user interface for the RLHF pipeline, including:
